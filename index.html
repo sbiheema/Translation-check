@@ -1,0 +1,648 @@
+<title>Translation Cross-Check</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one working column. Two upload bays side by side, run bar, verdict, exact checks, editable text, wording review. */
+:root{
+  --bg:#F1F4F6; --surface:#FFFFFF; --sunk:#E8EDF1; --ink:#13202B; --muted:#586876; --line:#D3DBE1;
+  --accent:#0E5A7E; --accent-ink:#FFFFFF;
+  --ok:#17734A; --ok-bg:#E1F2E8; --bad:#B02A22; --bad-bg:#FBE6E3; --warn:#7A5100; --warn-bg:#FAEFD3;
+  --f-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-ar:'IBM Plex Sans Arabic','Noto Naskh Arabic','Segoe UI',Tahoma,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F161C; --surface:#18222B; --sunk:#111A21; --ink:#E5ECF1; --muted:#97A7B4; --line:#2B3945;
+    --accent:#6DB4D8; --accent-ink:#06202D;
+    --ok:#62C894; --ok-bg:#12301F; --bad:#FF9188; --bad-bg:#3A1A18; --warn:#E8B64F; --warn-bg:#352A0F;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F161C; --surface:#18222B; --sunk:#111A21; --ink:#E5ECF1; --muted:#97A7B4; --line:#2B3945;
+  --accent:#6DB4D8; --accent-ink:#06202D;
+  --ok:#62C894; --ok-bg:#12301F; --bad:#FF9188; --bad-bg:#3A1A18; --warn:#E8B64F; --warn-bg:#352A0F;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:1060px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{font-size:1.6rem;line-height:1.2;margin:0;font-weight:600;text-wrap:balance}
+h2{font-size:1.05rem;margin:0;font-weight:600}
+p{margin:0}
+.lede{color:var(--muted);max-width:68ch;margin-top:6px}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.mono{font-family:var(--f-mono)}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.bays{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.bay{min-width:0}
+.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;
+  border:1.5px dashed var(--line);border-radius:8px;padding:16px;cursor:pointer;background:var(--sunk);color:var(--muted)}
+.drop:hover,.drop.over,.drop:focus-within{border-color:var(--accent);color:var(--ink)}
+.drop strong{color:var(--ink);font-weight:500}
+.drop{position:relative;min-height:84px}
+.drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.thumbs{display:flex;flex-wrap:wrap;gap:10px}
+.thumb{position:relative;width:92px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--sunk)}
+.thumb img{display:block;width:100%;height:108px;object-fit:cover}
+.thumb .n{position:absolute;left:4px;top:4px;background:var(--ink);color:var(--bg);font-size:.72rem;padding:0 6px;border-radius:9px}
+.thumb .tools{display:flex;justify-content:space-between;border-top:1px solid var(--line)}
+.thumb button{flex:1;border:0;background:var(--surface);color:var(--ink);padding:3px 0;font-size:.9rem;cursor:pointer}
+.thumb button:hover{background:var(--sunk)}
+.runbar{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
+.runbar label{display:flex;gap:6px;align-items:center;font-size:.9rem}
+button.primary{background:var(--accent);color:var(--accent-ink);border:0;border-radius:6px;padding:9px 16px;font:inherit;font-weight:500;cursor:pointer}
+button.primary:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line);border-radius:6px;padding:7px 12px;font:inherit;font-size:.9rem;cursor:pointer}
+button.ghost:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible,.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.status{font-size:.9rem;color:var(--muted);min-height:1.4em}
+.banner{display:flex;gap:12px;align-items:flex-start;border-radius:8px;padding:12px 14px;border:1px solid transparent}
+.banner.ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.banner.bad{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.banner.warn{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.banner b{font-weight:600}
+.banner .why{color:var(--ink)}
+.verdict-line{font-weight:600}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+tbody th{font-weight:500;white-space:nowrap}
+tbody th small{display:block;color:var(--muted);font-weight:400}
+input.cell{width:100%;min-width:140px;font-family:var(--f-mono);font-size:.9rem;background:var(--sunk);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:6px 8px}
+input.cell[dir="rtl"],.ar{font-family:var(--f-ar)}
+.chip{display:inline-block;font-size:.78rem;font-weight:500;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.neutral{background:var(--sunk);color:var(--muted)}
+.note{display:block;font-size:.82rem;color:var(--muted);margin-top:3px}
+.list{display:flex;flex-direction:column;gap:0;margin:0;padding:0;list-style:none}
+.list li{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:9px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.list .tok{font-family:var(--f-mono);font-weight:500;overflow-wrap:anywhere}
+.list .ctx{grid-column:2;color:var(--muted);font-size:.85rem;overflow-wrap:anywhere}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px}
+.cols>div{min-width:0;display:flex;flex-direction:column;gap:6px}
+textarea{width:100%;min-height:210px;resize:vertical;font-family:var(--f-mono);font-size:.88rem;line-height:1.55;background:var(--sunk);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:10px}
+textarea.ar{font-family:var(--f-ar);font-size:1rem}
+textarea.examples{min-height:120px;font-family:var(--f-body)}
+label.cap{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+details>summary{cursor:pointer;color:var(--accent);font-weight:500}
+.issue{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.issue .pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:8px}
+.issue .pair div{background:var(--sunk);border-radius:6px;padding:6px 8px;font-size:.9rem;overflow-wrap:anywhere}
+.issues{display:flex;flex-direction:column;gap:10px}
+.example-tag{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:8px 12px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:.9rem}
+.thumb-hint{font-size:.82rem;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.chip,.banner{transition:background .15s}}
+input#pw{font:inherit;background:var(--sunk);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 10px;width:11rem}
+</style>
+
+<main>
+  <header>
+    <h1>Translation Cross-Check</h1>
+    <p class="lede">Add photos of the Arabic original and the sworn English translation. Dates, national numbers, passport numbers and every other number are compared character by character in code, so a misread digit cannot slip through as a "close enough" match.</p>
+  </header>
+
+  <div id="exampleTag" class="example-tag" hidden>
+    <span>Example data is loaded to show how a check looks, including two planted errors. Add your own photos or paste text to replace it.</span>
+    <button class="ghost" id="clearExample" type="button">Clear example</button>
+  </div>
+
+  <section class="card" aria-labelledby="h-photos">
+    <div class="sec-head"><h2 id="h-photos">1. Photos of each document</h2><span class="thumb-hint">One page per photo, flat, in page order. Use the arrows to reorder.</span></div>
+    <div class="bays">
+      <div class="bay" data-side="ar">
+        <label class="cap" for="f-ar">Arabic original</label>
+        <label class="drop" id="drop-ar"><input id="f-ar" type="file" accept="image/*" multiple><strong>Add photos</strong><span class="small">or drop them here</span></label>
+        <div class="thumbs" id="th-ar" style="margin-top:10px"></div>
+      </div>
+      <div class="bay" data-side="en">
+        <label class="cap" for="f-en">English translation</label>
+        <label class="drop" id="drop-en"><input id="f-en" type="file" accept="image/*" multiple><strong>Add photos</strong><span class="small">or drop them here</span></label>
+        <div class="thumbs" id="th-en" style="margin-top:10px"></div>
+      </div>
+    </div>
+    <div class="runbar">
+      <label>Access password <input id="pw" type="password" autocomplete="current-password"></label>
+      <button class="primary" id="run" type="button" disabled>Read photos</button>
+      <button class="ghost" id="stop" type="button" hidden>Stop</button>
+      <label><input type="checkbox" id="optSplit" checked> High detail (reads each photo in two halves)</label>
+      <label><input type="checkbox" id="optTwice" checked> Read identifiers twice</label>
+    </div>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <p class="small muted">Photos are sent through this site's server to the Anthropic API to be read. The comparison of numbers and dates then runs inside this page.</p>
+  </section>
+
+  <section class="card" id="verdictCard" aria-labelledby="h-verdict">
+    <div class="sec-head"><h2 id="h-verdict">2. Exact checks</h2><button class="ghost" id="copyReport" type="button">Copy report</button></div>
+    <div id="verdict"></div>
+    <div id="fieldsBlock"></div>
+    <div id="datesBlock"></div>
+    <div id="idsBlock"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-text">
+    <div class="sec-head"><h2 id="h-text">3. Extracted text</h2><span class="thumb-hint">Fix any misread character here and the checks above update. You can also paste text instead of using photos.</span></div>
+    <div class="cols">
+      <div><label class="cap" for="t-ar">Arabic original</label><textarea id="t-ar" class="ar" dir="rtl" spellcheck="false"></textarea></div>
+      <div><label class="cap" for="t-en">English translation</label><textarea id="t-en" spellcheck="false"></textarea></div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="h-wording">
+    <div class="sec-head"><h2 id="h-wording">4. Wording review</h2></div>
+    <div>
+      <label class="cap" for="examples">Reference examples and preferred terms</label>
+      <textarea id="examples" class="examples" spellcheck="false" placeholder="Paste good past translations (Arabic and English side by side), or term pairs such as: وزارة الداخلية = Ministry of Interior"></textarea>
+    </div>
+    <div class="runbar">
+      <button class="primary" id="review" type="button">Review wording</button>
+      <button class="ghost" id="stopReview" type="button" hidden>Stop</button>
+      <span class="status" id="reviewStatus" role="status" aria-live="polite"></span>
+    </div>
+    <div id="reviewOut"></div>
+  </section>
+</main>
+
+<script>
+/* Pure logic: normalising digits, finding dates and numbers, comparing. No DOM here. */
+const Logic=(()=>{
+  const MONTHS={january:1,jan:1,february:2,feb:2,march:3,mar:3,april:4,apr:4,may:5,june:6,jun:6,july:7,jul:7,august:8,aug:8,september:9,sept:9,sep:9,october:10,oct:10,november:11,nov:11,december:12,dec:12,
+    'يناير':1,'فبراير':2,'مارس':3,'ابريل':4,'مايو':5,'يونيو':6,'يوليو':7,'اغسطس':8,'سبتمبر':9,'اكتوبر':10,'نوفمبر':11,'ديسمبر':12,
+    'كانون الثاني':1,'شباط':2,'اذار':3,'نيسان':4,'ايار':5,'حزيران':6,'تموز':7,'اب':8,'ايلول':9,'تشرين الاول':10,'تشرين الثاني':11,'كانون الاول':12,
+    'جانفي':1,'فيفري':2,'افريل':4,'ماي':5,'جوان':6,'جويلية':7,'اوت':8};
+  const MA=Object.keys(MONTHS).sort((a,b)=>b.length-a.length).map(k=>k.replace(/ /g,'\\s+')).join('|');
+  const END='(?![A-Za-z\\u0600-\\u06FF])';
+  const RE_DMY=new RegExp('(?<!\\d)(\\d{1,2})(?:st|nd|rd|th)?\\s*(?:of\\s+)?('+MA+')'+END+'[\\s,\\/\\-]*(\\d{4})(?!\\d)','gi');
+  const RE_MDY=new RegExp('(?<![A-Za-z])('+MA+')'+END+'\\s*(\\d{1,2})(?:st|nd|rd|th)?[\\s,]+(\\d{4})(?!\\d)','gi');
+  const RE_YMD=new RegExp('(?<!\\d)(\\d{4})\\s+('+MA+')'+END+'\\s*(\\d{1,2})(?!\\d)','gi');
+  const RE_NUM=/(?<!\d)(\d{1,4})\s*([\/\-.])\s*(\d{1,2})\s*\2\s*(\d{1,4})(?!\d)/g;
+
+  function norm(s){
+    return String(s==null?'':s).normalize('NFKC')
+      .replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-0x660))
+      .replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-0x6F0))
+      .replace(/[‎‏‪-‮⁦-⁩؜ـ]/g,'')
+      .replace(/[ً-ٰٟ]/g,'')
+      .replace(/٫/g,'.').replace(/٬/g,',');
+  }
+  function arNorm(s){return s.replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه');}
+  const pad=n=>String(n).padStart(2,'0');
+  const monthOf=k=>MONTHS[k.toLowerCase().replace(/\s+/g,' ')];
+  function mk(raw,y,mo,d,order){
+    if(!(y>=1000&&mo>=1&&mo<=12&&d>=1&&d<=31))return null;
+    return {raw:raw.replace(/\s+/g,' ').trim(),y,iso:y+'-'+pad(mo)+'-'+pad(d),pair:[mo,d].sort((a,b)=>a-b),hijri:y>=1300&&y<=1499,order:order||''};
+  }
+  function findDates(raw){
+    const plain=arNorm(norm(raw));
+    let t=plain;const dates=[];
+    const blank=m=>{t=t.slice(0,m.index)+' '.repeat(m[0].length)+t.slice(m.index+m[0].length);};
+    const run=(re,fn)=>{
+      const ms=[...t.matchAll(re)];
+      for(const m of ms){const d=fn(m);if(d){d.idx=m.index;dates.push(d);blank(m);}}
+    };
+    run(RE_DMY,m=>mk(m[0],+m[3],monthOf(m[2]),+m[1],'day month year'));
+    run(RE_MDY,m=>mk(m[0],+m[3],monthOf(m[1]),+m[2],'month day year'));
+    run(RE_YMD,m=>mk(m[0],+m[1],monthOf(m[2]),+m[3],'year month day'));
+    run(RE_NUM,m=>{
+      const a=m[1],b=m[3],c=m[4];
+      if(a.length===4)return mk(m[0],+a,+b,+c,'year/month/day');
+      if(c.length===4){
+        let d=+a,mo=+b,order='day/month/year';
+        if(mo>12&&d<=12){[d,mo]=[mo,d];order='month/day/year';}
+        return mk(m[0],+c,mo,d,order);
+      }
+      return null;
+    });
+    dates.sort((x,y)=>x.idx-y.idx);
+    return {dates,masked:t,plain};
+  }
+  function parseDate(v){const r=findDates(v);return r.dates[0]||null;}
+  const sepRe=/[^\s()\[\]{}:;،؛"'«»<>|=]+/g;
+  function findTokens(masked,plain){
+    const out=[];
+    for(const m of masked.matchAll(sepRe)){
+      let tok=m[0].replace(/^[.,\-\/]+|[.,\-\/]+$/g,'');
+      if(!/\d/.test(tok))continue;
+      const key=tok.toUpperCase().replace(/,/g,'');
+      const isId=(/^\d+$/.test(key)&&key.length>=6)||(/[A-Z]/.test(key)&&/\d/.test(key)&&key.length>=5);
+      const s=Math.max(0,m.index-30),e=Math.min(plain.length,m.index+m[0].length+30);
+      out.push({tok,key,kind:isId?'id':'num',ctx:plain.slice(s,e).replace(/\s+/g,' ').trim(),unreadable:key.includes('?')});
+    }
+    return out;
+  }
+  function sameDate(a,e){return a.iso&&e.iso?a.iso===e.iso:a.raw===e.raw;}
+  function compareDates(ar,en){
+    const used=new Set(),rows=[];
+    for(const a of ar){
+      let j=en.findIndex((e,i)=>!used.has(i)&&sameDate(a,e));
+      if(j>=0){used.add(j);rows.push({st:'ok',a,e:en[j]});continue;}
+      j=en.findIndex((e,i)=>!used.has(i)&&e.y===a.y&&e.pair.join()===a.pair.join());
+      if(j>=0){used.add(j);rows.push({st:'swap',a,e:en[j]});continue;}
+      rows.push({st:'onlyAr',a});
+    }
+    en.forEach((e,i)=>{if(!used.has(i))rows.push({st:'onlyEn',e});});
+    return rows;
+  }
+  function group(list){const m=new Map();for(const t of list){if(!m.has(t.key))m.set(t.key,[]);m.get(t.key).push(t);}return m;}
+  function compareTokens(ar,en){
+    const A=group(ar),E=group(en),matched=[],onlyAr=[],onlyEn=[];
+    for(const [k,list] of A){
+      const other=E.get(k)||[];const n=Math.min(list.length,other.length);
+      if(n&&!list[0].unreadable)matched.push({key:k,kind:list[0].kind,count:n,a:list[0],e:other[0]});
+      const startA=list[0].unreadable?0:n;
+      list.slice(startA).forEach(t=>onlyAr.push(t));
+    }
+    for(const [k,list] of E){
+      const other=A.get(k)||[];const n=list[0].unreadable?0:Math.min(list.length,other.length);
+      list.slice(n).forEach(t=>onlyEn.push(t));
+    }
+    return {matched,onlyAr,onlyEn};
+  }
+  const idKey=v=>norm(v).toUpperCase().replace(/\s+/g,'');
+  return {norm,findDates,parseDate,findTokens,compareDates,compareTokens,sameDate,idKey};
+})();
+</script>
+
+<script>
+(function(){
+'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+
+const SIDE_NAME={ar:'Arabic original',en:'English translation'};
+const LANG={ar:'Arabic',en:'English'};
+const KEYS='full_name, father_name, mother_name, grandfather_name, family_name, gender, nationality, dob, pob, national_number, passport_number, id_number, issue_date, expiry_date, issuing_authority, marital_status';
+const KEY_ORDER=KEYS.split(', ');
+const S={ar:{files:[],fields:[]},en:{files:[],fields:[]}};
+let sample=null,limits={images:{maxCount:6}},ctl=null,reviewCtl=null,exampleOn=false,lastReport='';
+const pwBox=$('#pw');
+try{pwBox.value=localStorage.getItem('tcc-pw')||'';}catch(e){}
+pwBox.addEventListener('input',()=>{try{localStorage.setItem('tcc-pw',pwBox.value);}catch(e){}updateRun();});
+function blobToB64(b){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=()=>rej(r.error);r.readAsDataURL(b);});}
+function parseLooseJSON(t){
+  const tries=[()=>JSON.parse(t),()=>JSON.parse(t.match(/```(?:json)?\s*([\s\S]*?)```/)[1]),()=>{const a=t.search(/[\[{]/),b=Math.max(t.lastIndexOf('}'),t.lastIndexOf(']'));return JSON.parse(t.slice(a,b+1));}];
+  for(const f of tries){try{return f();}catch(e){}}
+  throw {code:'invalid_json',message:'Reply was not JSON',text:t};
+}
+async function callAI(prompt,blobs,signal){
+  const list=blobs?(Array.isArray(blobs)?blobs:[blobs]):[];
+  if(list.reduce((n,b)=>n+b.size,0)>3.0e6)throw {code:'too_large',message:'Photos too large'};
+  const images=[];
+  for(const b of list)images.push({media_type:b.type||'image/jpeg',data:await blobToB64(b)});
+  let res;
+  try{
+    res=await fetch('/api/claude',{method:'POST',signal,headers:{'content-type':'application/json','x-app-password':pwBox.value},body:JSON.stringify({prompt,images,max_tokens:8000})});
+  }catch(e){
+    if(e&&e.name==='AbortError')throw {code:'cancelled'};
+    throw {code:'network',message:String(e)};
+  }
+  if(!res.ok){
+    const map={401:'not_granted',413:'too_large',429:'rate_limited'};
+    let msg='';try{msg=(await res.json()).error||'';}catch(e){}
+    throw {code:map[res.status]||'upstream_error',message:msg};
+  }
+  return res.json();
+}
+sample={
+  limits:async()=>limits,
+  json:async(prompt,opts)=>{
+    opts=opts||{};
+    const r=await callAI(prompt,opts.images,opts.signal);
+    if(r.truncated)throw {code:'invalid_json',message:'Reply was cut short',text:r.text};
+    return parseLooseJSON(r.text);
+  }
+};
+
+/* ---------- example data ---------- */
+const EX={
+  ar:{text:'دولة ليبيا\nوزارة الداخلية - مصلحة الأحوال المدنية\nشهادة ميلاد\nالاسم: سالم أحمد محمد الفيتوري\nالرقم الوطني: ١١٩٨٥٠٣١٢٠٤٠\nتاريخ الميلاد: ١٢/٠٣/١٩٨٥\nمكان الميلاد: طرابلس\nرقم جواز السفر: P4821937\nتاريخ الإصدار: ٠٤/٠٦/٢٠٢٤\n[ختم: مصلحة الأحوال المدنية]',
+    fields:[{key:'full_name',label:'الاسم',value:'سالم أحمد محمد الفيتوري'},{key:'national_number',label:'الرقم الوطني',value:'١١٩٨٥٠٣١٢٠٤٠'},{key:'dob',label:'تاريخ الميلاد',value:'١٢/٠٣/١٩٨٥'},{key:'passport_number',label:'رقم جواز السفر',value:'P4821937'},{key:'issue_date',label:'تاريخ الإصدار',value:'٠٤/٠٦/٢٠٢٤'}]},
+  en:{text:'State of Libya\nMinistry of Interior - Civil Registry Authority\nBirth Certificate\nName: Salem Ahmed Mohamed Al-Fituri\nNational Number: 119850312040\nDate of Birth: 12 March 1985\nPlace of Birth: Tripoli\nPassport Number: P4821973\nDate of Issue: 06/04/2024\n[Stamp: Civil Registry Authority]',
+    fields:[{key:'full_name',label:'Name',value:'Salem Ahmed Mohamed Al-Fituri'},{key:'national_number',label:'National Number',value:'119850312040'},{key:'dob',label:'Date of Birth',value:'12 March 1985'},{key:'passport_number',label:'Passport Number',value:'P4821973'},{key:'issue_date',label:'Date of Issue',value:'06/04/2024'}]}
+};
+function loadExample(){
+  exampleOn=true;
+  for(const s of ['ar','en']){S[s].fields=EX[s].fields.map(f=>({...f}));$('#t-'+s).value=EX[s].text;}
+  $('#exampleTag').hidden=false;
+}
+function clearExample(){
+  if(!exampleOn)return;
+  exampleOn=false;
+  for(const s of ['ar','en']){S[s].fields=[];$('#t-'+s).value='';}
+  $('#exampleTag').hidden=true;
+  runChecks();
+}
+
+/* ---------- photo bays ---------- */
+function renderThumbs(side){
+  const box=$('#th-'+side);box.innerHTML='';
+  S[side].files.forEach((it,i)=>{
+    const d=document.createElement('div');d.className='thumb';
+    d.innerHTML='<img alt="Photo '+(i+1)+' of the '+SIDE_NAME[side].toLowerCase()+'"><span class="n">'+(i+1)+'</span><div class="tools"><button type="button" data-a="left" aria-label="Move earlier">‹</button><button type="button" data-a="del" aria-label="Remove photo">×</button><button type="button" data-a="right" aria-label="Move later">›</button></div>';
+    d.querySelector('img').src=it.url;
+    d.querySelector('.tools').addEventListener('click',ev=>{
+      const a=ev.target.closest('button');if(!a)return;
+      const arr=S[side].files,k=a.dataset.a;
+      if(k==='del'){URL.revokeObjectURL(it.url);arr.splice(i,1);}
+      else if(k==='left'&&i>0){[arr[i-1],arr[i]]=[arr[i],arr[i-1]];}
+      else if(k==='right'&&i<arr.length-1){[arr[i+1],arr[i]]=[arr[i],arr[i+1]];}
+      renderThumbs(side);updateRun();
+    });
+    box.appendChild(d);
+  });
+}
+function addFiles(side,list){
+  const all=[...list];
+  const imgs=all.filter(f=>/^image\/(jpeg|png|webp|gif)$/.test(f.type)||/\.(jpe?g|png|webp|gif)$/i.test(f.name));
+  if(imgs.length<all.length)$('#status').textContent='Some files were skipped. Use JPEG, PNG or WebP photos (HEIC is not supported).';
+  if(!imgs.length)return;
+  clearExample();
+  for(const f of imgs)S[side].files.push({file:f,url:URL.createObjectURL(f)});
+  renderThumbs(side);updateRun();
+}
+function updateRun(){
+  const any=S.ar.files.length||S.en.files.length;
+  $('#run').disabled=!(any&&pwBox.value.trim());
+}
+for(const side of ['ar','en']){
+  const input=$('#f-'+side),drop=$('#drop-'+side);
+  input.addEventListener('change',()=>{addFiles(side,input.files);input.value='';});
+  ['dragenter','dragover'].forEach(n=>drop.addEventListener(n,e=>{e.preventDefault();drop.classList.add('over');}));
+  ['dragleave','drop'].forEach(n=>drop.addEventListener(n,e=>{e.preventDefault();drop.classList.remove('over');}));
+  drop.addEventListener('drop',e=>addFiles(side,e.dataTransfer.files));
+}
+
+/* ---------- reading photos ---------- */
+async function tilesFor(file,split){
+  const MAX=split?2000:1600;
+  const enc=(src,sx,sy,sw,sh)=>new Promise(r=>{
+    const sc=Math.min(1,MAX/Math.max(sw,sh));
+    const c=document.createElement('canvas');c.width=Math.round(sw*sc);c.height=Math.round(sh*sc);
+    c.getContext('2d').drawImage(src,sx,sy,sw,sh,0,0,c.width,c.height);
+    c.toBlob(r,'image/jpeg',0.82);
+  });
+  try{
+    const bmp=await createImageBitmap(file,{imageOrientation:'from-image'});
+    const w=bmp.width,h=bmp.height;
+    let out;
+    if(!split){out=[{blob:await enc(bmp,0,0,w,h),label:'whole page'}];}
+    else{
+      const wide=w>h*1.15;
+      const parts=wide?[[0,0.56,'left part'],[0.44,1,'right part']]:[[0,0.56,'top part'],[0.44,1,'bottom part']];
+      out=[];
+      for(const [a,b,label] of parts){
+        const sx=wide?Math.round(a*w):0,sy=wide?0:Math.round(a*h);
+        const sw=wide?Math.round((b-a)*w):w,sh=wide?h:Math.round((b-a)*h);
+        out.push({blob:await enc(bmp,sx,sy,sw,sh),label});
+      }
+    }
+    if(bmp.close)bmp.close();
+    if(out.some(o=>!o.blob))throw new Error('encode');
+    return out;
+  }catch(e){return [{blob:file,label:'whole page'}];}
+}
+function prompt1(side,desc){
+  return 'You are transcribing photographed pages of an official document written in '+LANG[side]+'. The attached images, in order:\n'+desc.join('\n')+
+  '\n\nReply with only one JSON object: {"text": string, "fields": [{"key": string, "label": string, "value": string}], "unclear": [string]}.\n\n'+
+  'Rules for "text": transcribe everything legible, in reading order, one printed line per line, starting each photo with a line "=== Photo N ===" using the photo numbers above. Mark stamps, seals and signatures as [stamp: wording] and [signature]. Where two images are overlapping parts of one photo, write the overlap once.\n'+
+  'Copy every digit, date, name spelling and ID exactly as printed. Do not correct, reformat, reorder or convert numerals or dates, and keep the numeral script used on the page. Where a character cannot be read, write ? in its place. Never guess a digit.\n\n'+
+  'Rules for "fields": include only fields printed on these pages. Use these keys when they apply: '+KEYS+'. For any other identifying number or date use "other_" plus a short snake_case name. "label" is the caption as printed. "value" is exactly as printed, with the same digit rules.\n'+
+  '"unclear": short notes on anything blurred, cut off or doubtful, naming the photo number.';
+}
+function prompt2(side,desc){
+  return 'Independent second reading of photographed pages of an official document written in '+LANG[side]+'. The attached images, in order:\n'+desc.join('\n')+
+  '\n\nReply with only one JSON object: {"fields": [{"key": string, "label": string, "value": string}]}. Include names, dates, national or ID numbers, passport numbers and any other identifying numbers. Use these keys when they apply: '+KEYS+'; otherwise "other_" plus a snake_case name. Read each digit slowly and copy it exactly as printed, in the numeral script used on the page. Write ? for any character you cannot read and never guess.';
+}
+function mergeFields(into,list,unstableAgainst){
+  for(const f of list){
+    if(!f||typeof f.key!=='string'||typeof f.value!=='string')continue;
+    const key=f.key.trim().toLowerCase();
+    const prev=into.find(x=>x.key===key);
+    if(prev){if(Logic.idKey(prev.value)!==Logic.idKey(f.value)){(prev.alts=prev.alts||[]).push(f.value);}continue;}
+    into.push({key,label:String(f.label||''),value:f.value.trim()});
+  }
+}
+async function readSide(side,opts,setStatus){
+  const items=S[side].files;if(!items.length)return;
+  const per=opts.split?2:1;
+  const maxC=(limits&&limits.images&&limits.images.maxCount)||6;
+  const step=Math.max(1,Math.min(opts.split?1:2,Math.floor(maxC/per)));
+  const texts=[],fields=[],unclear=[];
+  for(let start=0;start<items.length;start+=step){
+    const chunk=items.slice(start,start+step);
+    const blobs=[],desc=[];
+    for(let i=0;i<chunk.length;i++){
+      const n=start+i+1;
+      const tiles=await tilesFor(chunk[i].file,opts.split);
+      for(const t of tiles){blobs.push(t.blob);desc.push('Image '+blobs.length+': photo '+n+', '+t.label);}
+    }
+    const range=chunk.length>1?'photos '+(start+1)+' to '+(start+chunk.length):'photo '+(start+1);
+    setStatus('Reading '+SIDE_NAME[side].toLowerCase()+', '+range+' of '+items.length+'...');
+    const r1=await sample.json(prompt1(side,desc),{images:blobs,signal:ctl.signal,cache:false});
+    if(!r1||typeof r1.text!=='string')throw {code:'invalid_json',message:'Unexpected reply shape'};
+    texts.push(r1.text.trim());
+    const chunkFields=[];mergeFields(chunkFields,Array.isArray(r1.fields)?r1.fields:[]);
+    if(Array.isArray(r1.unclear))unclear.push(...r1.unclear.map(String));
+    if(opts.twice){
+      setStatus('Re-reading identifiers on '+SIDE_NAME[side].toLowerCase()+', '+range+'...');
+      const r2=await sample.json(prompt2(side,desc),{images:blobs,signal:ctl.signal,cache:false});
+      const second=[];mergeFields(second,Array.isArray(r2&&r2.fields)?r2.fields:[]);
+      for(const f2 of second){
+        const f1=chunkFields.find(x=>x.key===f2.key);
+        if(!f1){chunkFields.push({...f2,unstable:['(second read only)']});}
+        else if(Logic.idKey(f1.value)!==Logic.idKey(f2.value)){f1.unstable=[f2.value];}
+      }
+    }
+    for(const f of chunkFields){
+      const prev=fields.find(x=>x.key===f.key);
+      if(prev){(prev.alts=prev.alts||[]).push(f.value);if(f.unstable)prev.unstable=(prev.unstable||[]).concat(f.unstable);}
+      else fields.push(f);
+    }
+  }
+  S[side].fields=fields;
+  $('#t-'+side).value=texts.join('\n\n')+(unclear.length?'\n\n--- Unclear ---\n'+unclear.join('\n'):'');
+}
+function copyFor(code){
+  const m={not_granted:'The access password is missing or wrong. Enter it and try again.',
+    rate_limited:'Too many requests, or the API usage limit was reached. Wait a while, then try again.',
+    too_large:'The photos are too large to send in one go. Try turning off High detail, or use smaller photos.',
+    network:'Could not reach the server. Photo reading only works on your own deployed link, not on a file opened from your device.',
+    invalid_json:'The AI returned a reply this page could not read. Try again, or turn off High detail to shorten the reply.',
+    upstream_error:'The server or the AI service returned an error. Try again in a moment. If it keeps happening, check the API key and credit.'};
+  return m[code]||m.upstream_error;
+}
+function setBusy(b){$('#run').disabled=b||!(S.ar.files.length||S.en.files.length);$('#stop').hidden=!b;}
+$('#run').addEventListener('click',async()=>{
+  if(!sample)return;
+  clearExample();
+  ctl=new AbortController();setBusy(true);
+  const setStatus=t=>{$('#status').textContent=t;};
+  const opts={split:$('#optSplit').checked,twice:$('#optTwice').checked};
+  try{
+    for(const side of ['ar','en']){await readSide(side,opts,setStatus);runChecks();}
+    setStatus('Finished. Compare the extracted values with the photos before relying on the result.');
+  }catch(e){
+    if(e&&e.code==='cancelled')setStatus('Stopped.');
+    else setStatus(copyFor(e&&e.code));
+  }finally{setBusy(false);updateRun();}
+});
+$('#stop').addEventListener('click',()=>{if(ctl)ctl.abort();});
+
+/* ---------- checks ---------- */
+const pretty=k=>k.replace(/^other_/,'').replace(/_/g,' ').replace(/^./,c=>c.toUpperCase());
+const kindOf=k=>/(^dob$|date)/.test(k)?'date':/(number|_no$|^id|phone|passport|national|civil|serial|registry)/.test(k)?'id':'text';
+const CHIP={ok:['ok','Match'],differs:['bad','Differs'],swap:['bad','Day and month swapped?'],review:['neutral','Check spelling by eye'],one:['warn','One side only'],oneCrit:['bad','One side only'],unstable:['bad','Two reads disagree'],unreadable:['bad','Unreadable digit']};
+function rowFor(key){
+  const a=S.ar.fields.find(f=>f.key===key),e=S.en.fields.find(f=>f.key===key);
+  const kind=kindOf(key);let st,note='';
+  if(!a||!e)st=(kind==='text')?'one':'oneCrit';
+  else if(kind==='text')st='review';
+  else if(kind==='id'){st=Logic.idKey(a.value)===Logic.idKey(e.value)?'ok':'differs';}
+  else{
+    const da=Logic.parseDate(a.value),de=Logic.parseDate(e.value);
+    if(da&&de){
+      if(Logic.sameDate(da,de))st='ok';
+      else if(da.y===de.y&&da.pair.join()===de.pair.join()){st='swap';note='Arabic reads as '+da.iso+', English as '+de.iso+' (day/month/year assumed).';}
+      else{st='differs';note='Arabic reads as '+da.iso+', English as '+de.iso+'.';}
+    }else st=Logic.idKey(a.value)===Logic.idKey(e.value)?'ok':'differs';
+  }
+  const bad=[a,e].some(f=>f&&/\?/.test(f.value));
+  if(bad&&kind!=='text')st='unreadable';
+  const un=[a,e].filter(f=>f&&f.unstable);
+  if(un.length&&kind!=='text'){st='unstable';note='Second read gave '+un.map(f=>f.unstable[0]).join(' and ')+'.';}
+  return {key,kind,a,e,st,note};
+}
+function chip(st){const c=CHIP[st];return '<span class="chip '+c[0]+'">'+c[1]+'</span>';}
+function runChecks(){
+  const arT=$('#t-ar').value,enT=$('#t-en').value;
+  const haveText=arT.trim()&&enT.trim();
+  const keys=[];
+  for(const s of ['ar','en'])for(const f of S[s].fields)if(!keys.includes(f.key))keys.push(f.key);
+  keys.sort((x,y)=>{const i=KEY_ORDER.indexOf(x),j=KEY_ORDER.indexOf(y);return (i<0?99:i)-(j<0?99:j);});
+  const rows=keys.map(rowFor);
+  let crit=0,minor=0;
+  for(const r of rows)if(['differs','swap','oneCrit','unstable','unreadable'].includes(r.st))crit++;
+
+  // fields table
+  let fh='';
+  if(rows.length){
+    fh='<h3 class="cap" style="margin:0">Key fields</h3><div class="tablewrap"><table><thead><tr><th>Field</th><th>Arabic original</th><th>English translation</th><th>Result</th></tr></thead><tbody>'+
+    rows.map(r=>'<tr><th scope="row">'+esc(pretty(r.key))+'<small>'+esc((r.a&&r.a.label)||(r.e&&r.e.label)||'')+'</small></th>'+
+      '<td><input class="cell" dir="auto" data-side="ar" data-key="'+esc(r.key)+'" value="'+esc(r.a?r.a.value:'')+'" aria-label="Arabic value for '+esc(pretty(r.key))+'"></td>'+
+      '<td><input class="cell" dir="auto" data-side="en" data-key="'+esc(r.key)+'" value="'+esc(r.e?r.e.value:'')+'" aria-label="English value for '+esc(pretty(r.key))+'"></td>'+
+      '<td>'+chip(r.st)+(r.note?'<span class="note">'+esc(r.note)+'</span>':'')+'</td></tr>').join('')+'</tbody></table></div>';
+  }
+  $('#fieldsBlock').innerHTML=fh;
+
+  // dates and tokens from full text
+  let dh='',ih='',dateRows=[],tk={matched:[],onlyAr:[],onlyEn:[]};
+  if(haveText){
+    const A=Logic.findDates(arT),E=Logic.findDates(enT);
+    dateRows=Logic.compareDates(A.dates,E.dates);
+    const T=Logic.compareTokens(Logic.findTokens(A.masked,A.plain),Logic.findTokens(E.masked,E.plain));
+    tk=T;
+    const badDates=dateRows.filter(d=>d.st!=='ok').length;crit+=badDates;
+    const idBad=[...T.onlyAr,...T.onlyEn].filter(t=>t.kind==='id'||t.unreadable);
+    const numBad=[...T.onlyAr,...T.onlyEn].filter(t=>!(t.kind==='id'||t.unreadable));
+    crit+=idBad.length;minor+=numBad.length;
+    const dateLabel={ok:['ok','Match'],swap:['bad','Day and month swapped?'],onlyAr:['bad','Only in Arabic'],onlyEn:['bad','Only in English']};
+    dh='<h3 class="cap" style="margin:8px 0 0">Dates found in the text</h3>'+(dateRows.length?'<ul class="list">'+dateRows.map(d=>{
+      const l=dateLabel[d.st];
+      const left=d.a?esc(d.a.raw)+' <span class="muted">('+esc(d.a.iso)+(d.a.hijri?', possible Hijri year':'')+')</span>':'<span class="muted">not found</span>';
+      const right=d.e?esc(d.e.raw)+' <span class="muted">('+esc(d.e.iso)+(d.e.hijri?', possible Hijri year':'')+')</span>':'<span class="muted">not found</span>';
+      return '<li><span class="chip '+l[0]+'">'+l[1]+'</span><span class="mono">'+left+' &rarr; '+right+'</span></li>';
+    }).join('')+'</ul>':'<p class="muted small">No dates were recognised. Hijri dates are not converted to Gregorian.</p>');
+    const unm=[...T.onlyAr.map(t=>({t,s:'Arabic only'})),...T.onlyEn.map(t=>({t,s:'English only'}))].sort((x,y)=>(y.t.kind==='id')-(x.t.kind==='id'));
+    ih='<h3 class="cap" style="margin:8px 0 0">Numbers and IDs without a partner on the other side</h3>'+
+      (unm.length?'<ul class="list">'+unm.map(({t,s})=>'<li><span class="tok">'+esc(t.tok)+'</span><span><span class="chip '+((t.kind==='id'||t.unreadable)?'bad':'warn')+'">'+s+'</span> <span class="small muted">'+(t.unreadable?'contains an unreadable digit':t.kind==='id'?'identifier':'number')+'</span></span><span class="ctx" dir="auto">'+esc(t.ctx)+'</span></li>').join('')+'</ul>':'<p class="small" style="color:var(--ok)">Every number and identifier on one side has an identical partner on the other.</p>')+
+      '<details style="margin-top:6px"><summary>'+tk.matched.length+' matched numbers and identifiers</summary><ul class="list">'+tk.matched.map(m=>'<li><span class="tok">'+esc(m.a.tok)+'</span><span><span class="chip ok">Match</span> <span class="small muted">'+(m.kind==='id'?'identifier':'number')+(m.count>1?', '+m.count+' times':'')+'</span></span></li>').join('')+'</ul></details>';
+  }
+  $('#datesBlock').innerHTML=dh;$('#idsBlock').innerHTML=ih;
+
+  // verdict
+  let v;
+  if(!rows.length&&!haveText){
+    v='<div class="banner warn"><div><b>Nothing to compare yet.</b> <span class="why">Read the photos or paste text into both boxes in step 3.</span></div></div>';
+    lastReport='';
+  }else if(crit>0){
+    v='<div class="banner bad"><div><span class="verdict-line">'+crit+' difference'+(crit===1?'':'s')+' in dates or identifiers.</span> <span class="why">Check each flagged item against the photos'+(minor?'. '+minor+' other number'+(minor===1?'':'s')+' also have no partner.':'.')+'</span></div></div>';
+  }else if(minor>0){
+    v='<div class="banner warn"><div><span class="verdict-line">Dates and identifiers agree.</span> <span class="why">'+minor+' other number'+(minor===1?'':'s')+' appear on one side only, for example spelled-out figures or page counts.</span></div></div>';
+  }else{
+    v='<div class="banner ok"><div><span class="verdict-line">No differences found in dates, identifiers or numbers.</span> <span class="why">This matches the extracted text. Confirm that text against the photos once.</span></div></div>';
+  }
+  $('#verdict').innerHTML=v;
+
+  // plain report
+  const L=['Translation cross-check',''];
+  rows.forEach(r=>L.push(pretty(r.key)+': '+(r.a?r.a.value:'-')+' | '+(r.e?r.e.value:'-')+' | '+CHIP[r.st][1]+(r.note?' ('+r.note+')':'')));
+  dateRows.forEach(d=>L.push('Date: '+(d.a?d.a.raw:'-')+' | '+(d.e?d.e.raw:'-')+' | '+({ok:'Match',swap:'Day and month swapped?',onlyAr:'Only in Arabic',onlyEn:'Only in English'}[d.st])));
+  tk.onlyAr.forEach(t=>L.push('Number only in Arabic: '+t.tok));
+  tk.onlyEn.forEach(t=>L.push('Number only in English: '+t.tok));
+  lastReport=L.join('\n');
+}
+$('#fieldsBlock').addEventListener('change',ev=>{
+  const inp=ev.target.closest('input.cell');if(!inp)return;
+  const side=inp.dataset.side,key=inp.dataset.key,val=inp.value.trim();
+  let f=S[side].fields.find(x=>x.key===key);
+  if(f){f.value=val;delete f.unstable;}
+  else if(val)S[side].fields.push({key,label:'',value:val});
+  runChecks();
+});
+let deb;
+for(const s of ['ar','en'])$('#t-'+s).addEventListener('input',()=>{clearTimeout(deb);deb=setTimeout(()=>{runChecks();},250);});
+$('#clearExample').addEventListener('click',clearExample);
+$('#copyReport').addEventListener('click',async()=>{
+  const b=$('#copyReport');
+  try{await navigator.clipboard.writeText(lastReport||'No result yet.');b.textContent='Copied';}
+  catch(e){b.textContent='Copy not allowed here';}
+  setTimeout(()=>{b.textContent='Copy report';},1800);
+});
+
+/* ---------- wording review ---------- */
+const exBox=$('#examples');
+exBox.value=lsGet('tcc-examples')||'';
+exBox.addEventListener('input',()=>lsSet('tcc-examples',exBox.value));
+const SEV={high:['bad','High'],medium:['warn','Medium'],low:['neutral','Low']};
+$('#review').addEventListener('click',async()=>{
+  const arT=$('#t-ar').value.trim(),enT=$('#t-en').value.trim(),st=$('#reviewStatus'),out=$('#reviewOut');
+  if(!pwBox.value.trim()){st.textContent='Enter the access password first.';return;}
+  if(!arT||!enT){st.textContent='Add the Arabic and English text in step 3 first.';return;}
+  reviewCtl=new AbortController();
+  $('#review').disabled=true;$('#stopReview').hidden=false;st.textContent='Reviewing...';out.innerHTML='';
+  const ex=exBox.value.trim().slice(0,40000);
+  const p='You are a careful reviewer of sworn Arabic to English translations of official documents.\n\n'+
+   'ARABIC ORIGINAL:\n'+arT.slice(0,60000)+'\n\nENGLISH TRANSLATION:\n'+enT.slice(0,60000)+'\n\n'+
+   (ex?'REFERENCE EXAMPLES AND PREFERRED TERMS (follow their terminology and style):\n'+ex+'\n\n':'')+
+   'Find omissions, additions, mistranslations, inconsistent or non-preferred terminology, title and office names rendered differently from the references, and stamps, seals or notes that appear on one side only. Dates and numbers are checked separately by code, so mention them only if the translation clearly misstates what the Arabic means. Names may be transliterated in more than one valid way, so flag a name only if it looks like a different name.\n'+
+   'Reply with only one JSON object: {"summary": string, "issues": [{"severity": "high"|"medium"|"low", "kind": string, "arabic": string, "english": string, "note": string}]}. Quote only short fragments. At most 25 issues, most serious first. If the translation is faithful, return an empty issues list and say so in the summary.';
+  try{
+    const r=await sample.json(p,{signal:reviewCtl.signal,cache:false});
+    const issues=Array.isArray(r&&r.issues)?r.issues:[];
+    st.textContent='';
+    out.innerHTML='<p style="margin-bottom:10px">'+esc(r&&r.summary||'')+'</p>'+(issues.length?'<div class="issues">'+issues.map(i=>{
+      const sv=SEV[String(i.severity).toLowerCase()]||SEV.low;
+      return '<div class="issue"><div><span class="chip '+sv[0]+'">'+sv[1]+'</span> <span class="small muted">'+esc(i.kind||'')+'</span></div>'+
+        '<div class="pair"><div class="ar" dir="rtl">'+esc(i.arabic||'')+'</div><div dir="auto">'+esc(i.english||'')+'</div></div><div class="small">'+esc(i.note||'')+'</div></div>';
+    }).join('')+'</div>':'');
+  }catch(e){
+    st.textContent=(e&&e.code==='cancelled')?'Stopped.':copyFor(e&&e.code);
+  }finally{$('#review').disabled=false;$('#stopReview').hidden=true;}
+});
+$('#stopReview').addEventListener('click',()=>{if(reviewCtl)reviewCtl.abort();});
+
+/* ---------- start ---------- */
+loadExample();runChecks();updateRun();
+})();
+</script>
